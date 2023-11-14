@@ -28,15 +28,11 @@ class Response
         throw new PaymentException($this);
     }
     public static function makeResponse($body){
-        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>".
-                    "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">".
-                    "<soapenv:Body>".
-                        $body.
-                    "</soapenv:Body>".
-                "</soapenv:Envelope>";
+        return $body;
     }
     public function send(){
-        header('content-type: text/xml;');
+        // response json
+        header('content-type: application/json');
         if ($this->request == null)
             echo 'error';
         else 

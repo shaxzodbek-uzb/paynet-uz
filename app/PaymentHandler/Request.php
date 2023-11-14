@@ -26,54 +26,37 @@ class Request
     public function __construct($response)
     {
         $this->response = $response;
-        $this->params = [];
-        $arr_params = $this->getRequestArray();
-        $this->loadAccount($arr_params);
+        $this->params = $this->getRequestArray();
+        $this->loadAccount();
 
-        foreach ($arr_params as $key => $value) {
-            switch ($key) {
-                case self::ARGUMENTS_PerformTransaction:
-                    $this->paramsPerformTransaction($arr_params[self::ARGUMENTS_PerformTransaction]);
-                    break;
-                case self::ARGUMENTS_CheckTransaction:
-                    $this->paramsCheckTransaction($arr_params[self::ARGUMENTS_CheckTransaction]);
-                    break;
-                case self::ARGUMENTS_GetStatement:
-                    $this->paramsStament($arr_params[self::ARGUMENTS_GetStatement]);
-                    break;
-                case self::ARGUMENTS_CancelTransaction:
-                    $this->paramsCancel($arr_params[self::ARGUMENTS_CancelTransaction]);
-                    break;
-                case self::ARGUMENTS_GetInformation:
-                    $this->paramsInformation($arr_params[self::ARGUMENTS_GetInformation]);
-                    break;
-                default:
-                    $this->response->response($this, 'Error in request', Response::ERROR_METHOD_NOT_FOUND);
-            }
+        switch ($this->params['method']) {
+            case self::METHOD_PerformTransaction:
+                $this->paramsPerformTransaction($this->params[self::ARGUMENTS_PerformTransaction]);
+                break;
+            case self::ARGUMENTS_CheckTransaction:
+                $this->paramsCheckTransaction($this->params[self::ARGUMENTS_CheckTransaction]);
+                break;
+            case self::ARGUMENTS_GetStatement:
+                $this->paramsStament($this->params[self::ARGUMENTS_GetStatement]);
+                break;
+            case self::ARGUMENTS_CancelTransaction:
+                $this->paramsCancel($this->params[self::ARGUMENTS_CancelTransaction]);
+                break;
+            case self::METHOD_GetInformation:
+                $this->paramsInformation($this->params);
+                break;
+            default:
+                $this->response->response($this, 'Error in request', Response::ERROR_METHOD_NOT_FOUND);
         }
     }
-    public function loadAccount($arr_params)
+    public function loadAccount()
     {
-        $arr_params = array_values($arr_params)[0];
-
-        $this->params['account'] = [
-            'login' => $arr_params['username'],
-            'password' => $arr_params['password']
-        ];
-        $this->params['serviceId'] = $arr_params['serviceId'];
+        $this->params['serviceId'] = $this->params['params']['serviceId'];
     }
     public function getRequestArray()
     {
         $request_body  = file_get_contents('php://input');
-        $clean_xml = str_ireplace(['soapenv:', 'soap:', 'xmlns:', 'xsi:', 'ns1:'], '', $request_body);
-        $xml = simplexml_load_string($clean_xml);
-        $body = null;
-        if ($xml)
-            $body = $xml->Body;
-        else
-            $this->response->response($this, 'Error in request', Response::ERROR_INVALID_JSON_RPC_OBJECT);
-
-        return json_decode(json_encode($body), 1);
+        return json_decode($request_body, true);
     }
     public function paramsPerformTransaction($par)
     {
@@ -102,8 +85,8 @@ class Request
     {
         $res = [
             'method' => self::METHOD_CheckTransaction,
-            'transactionId' => $par['transactionId'],
-            'transactionTime' => $par['transactionTime'],
+            'transactionId' => $par['params']['transactionId'],
+            'transactionTime' => $par['params']['transactionTime'],
         ];
         $this->params = array_merge($this->params, $res);
     }
@@ -130,20 +113,9 @@ class Request
 
     private function paramsInformation($par)
     {
-        $key = $par['parameters'];
-        if (isset($key['paramValue'])) {
-            $key = $key['paramValue'];
-        } else {
-            $keys = $key;
-            foreach ($keys as $k) {
-                if ($k['paramKey'] == 'key') {
-                    $key = $k['paramValue'];
-                }
-            }
-        }
         $res = [
             'method' => self::METHOD_GetInformation,
-            'key' => $key
+            'key' => $par['params']['fields']['user_id']
         ];
         $this->params = array_merge($this->params, $res);
     }
